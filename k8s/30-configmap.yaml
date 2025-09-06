@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+name: app-config
+namespace: beginner
+data:
+GREETING_NAME: "Beginner"

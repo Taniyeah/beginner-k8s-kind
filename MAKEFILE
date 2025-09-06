@@ -1,0 +1,47 @@
+KIND_CLUSTER?=beg-k8s
+KIND_CFG=kind/kind-config.yaml
+NS=beginner
+IMG_NAME=beginner-app
+IMG_TAG=dev
+IMG=$(IMG_NAME):$(IMG_TAG)
+
+
+.PHONY: cluster delete-cluster build load deploy logs clean url
+
+
+cluster:
+kind create cluster --name $(KIND_CLUSTER) --config $(KIND_CFG)
+
+
+delete-cluster:
+kind delete cluster --name $(KIND_CLUSTER)
+
+
+build:
+docker build -t $(IMG) ./app
+
+
+load:
+kind load docker-image $(IMG) --name $(KIND_CLUSTER)
+
+
+deploy:
+kubectl apply -f k8s/00-namespace.yaml
+kubectl apply -f k8s/30-configmap.yaml
+kubectl apply -f k8s/40-secret.yaml
+# set the image tag so you can rebuild without editing YAML
+kubectl apply -f k8s/10-deployment.yaml
+kubectl -n $(NS) set image deploy/hello app=$(IMG) --record
+kubectl apply -f k8s/20-service.yaml
+kubectl -n $(NS) rollout status deploy/hello --timeout=120s
+
+
+logs:
+kubectl -n $(NS) logs deploy/hello --tail=100 -f
+
+
+url:
+@echo "http://localhost:8080/"
+
+
+clean: delete-cluster
